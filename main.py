@@ -81,6 +81,7 @@ if __name__ == '__main__':
     DATA_PATH = args.data_path
     OUTPUT_PATH = args.save_result_path
     TRAINED_MODEL_PATH = args.model_path
+    YOLO_MODEL_PATH = os.path.join(TRAINED_MODEL_PATH, "yolo.pt")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     yolo = YOLO(YOLO_MODEL_PATH)
     unet = get_unet_model(device=device, bilinear=False, unet_type=args.model_type)
