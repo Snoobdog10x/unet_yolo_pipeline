@@ -7,6 +7,7 @@ import matplotlib
 import torch.nn.functional as F
 from utils.data_loading import BasicDataset
 from copy import deepcopy
+
 new_size = 256
 
 
@@ -64,7 +65,10 @@ def get_latest_predict_path():
 def load_all_crop_by_image(crop_path: str, image):
     crop_image_by_image = []
     for file in os.listdir(crop_path):
-        if image[:-4] in file:
+        split_image_name = image.split(".")
+        split_image_name.pop(2)
+        image_name = os.path.split(".".join(split_image_name))[-1]
+        if image_name[:-4] in file:
             crop_image_by_image.append(os.path.join(crop_path, file))
     return [resize_image(cv2.imread(crop_image), 256) for crop_image in crop_image_by_image]
 

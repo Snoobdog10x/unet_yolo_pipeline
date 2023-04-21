@@ -50,9 +50,7 @@ def pipline(device, yolo, unet):
         logging(f"{file}: {chromosome_nums}")
         image_data.append(file_path)
         count += 1
-        if count == 1:
-            break
-    results = yolo.predict(source=image_data, conf=0.5, line_thickness=1, save=True, hide_conf=False,
+    results = yolo.predict(source=image_data, conf=0.5, line_thickness=1, save=True, show_conf=False,
                            save_conf=True, save_crop=True)
     latest_predict_path = get_latest_predict_path()
     crop_path = os.path.join(latest_predict_path, "crops", "0-0")
