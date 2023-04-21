@@ -11,6 +11,14 @@ OUTPUT_PATH = "output"
 DATA_PATH = "data"
 
 
+def get_chromosome_nums(image_file: str):
+    mask_file = f"{image_file[:-4]}.txt"
+    mask_path = os.path.join(DATA_PATH, "labels", mask_file)
+    with open(mask_path, 'r') as fp:
+        x = len(fp.readlines())
+        return x
+
+
 def get_unet_model(device, bilinear, unet_type="NORMAL"):
     unet_path = os.path.join(TRAINED_MODEL_PATH, "unet.pth" if unet_type == "NORMAL" else "unet_lite.pth")
     if unet_type == "NORMAL":

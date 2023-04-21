@@ -7,8 +7,6 @@ import matplotlib
 import torch.nn.functional as F
 from utils.data_loading import BasicDataset
 from copy import deepcopy
-
-DATA_PATH = "data"
 new_size = 256
 
 
@@ -41,14 +39,6 @@ def predict_img(net,
             mask = torch.sigmoid(output) > out_threshold
 
     return mask[0].long().squeeze().numpy()
-
-
-def get_chromosome_nums(image_file: str):
-    mask_file = f"{image_file[:-4]}.txt"
-    mask_path = os.path.join(DATA_PATH, "labels", mask_file)
-    with open(mask_path, 'r') as fp:
-        x = len(fp.readlines())
-        return x
 
 
 def logging(message: str):
