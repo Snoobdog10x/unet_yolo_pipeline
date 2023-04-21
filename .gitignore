@@ -1,4 +1,4 @@
-./data
-./trained_models
-./output
-./runs
+data/
+trained_models/
+output/
+runs/
