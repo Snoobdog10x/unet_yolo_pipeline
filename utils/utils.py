@@ -3,10 +3,7 @@ import matplotlib.pyplot as plt
 import cv2
 import numpy as np
 import torch
-import matplotlib
 import torch.nn.functional as F
-from utils.data_loading import BasicDataset
-from copy import deepcopy
 
 new_size = 256
 
@@ -25,7 +22,7 @@ def convert_unet_input(numpy_img):
 
 def predict_img(net,
                 full_img,
-                device,
+                device, size,
                 out_threshold=0.5):
     net.eval()
     img = torch.from_numpy(convert_unet_input(full_img))
@@ -33,7 +30,7 @@ def predict_img(net,
     img = img.to(device=device, dtype=torch.float32)
     with torch.no_grad():
         output = net(img).cpu()
-        output = F.interpolate(output, (new_size, new_size), mode='bilinear')
+        output = F.interpolate(output, (size, size), mode='bilinear')
         if net.n_classes > 1:
             mask = output.argmax(dim=1)
         else:
@@ -47,19 +44,43 @@ def logging(message: str):
 
 
 def resize_image(image, size):
-    h, w = image.shape[:2]
+    if len(image.shape) == 3:
+        h, w, c = image.shape
+    else:
+        h, w = image.shape
+        c = 1
+        image = np.expand_dims(image, axis=-1)
     ratio = size / max(h, w)
     new_h, new_w = int(h * ratio), int(w * ratio)
     rescaled = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_AREA)
-    canvas = np.zeros((size, size, 3), dtype=np.uint8)
+    canvas = np.zeros((size, size, c), dtype=np.uint8)
     top, left = (size - new_h) // 2, (size - new_w) // 2
-    canvas[top:top + new_h, left:left + new_w] = rescaled
+    canvas[top:top + new_h, left:left + new_w, :] = rescaled
     return canvas
+
+
+def clean_chromosome(resized_im, mask):
+    mask = np.expand_dims(mask, axis=-1)
+    mask = np.concatenate((mask, mask, mask),
+                          axis=-1)
+    crops = resized_im * mask  #
+    return crops
 
 
 def get_latest_predict_path():
     predict_path = os.path.join("runs", "detect")
     return os.path.join(predict_path, sorted(os.listdir(predict_path))[-1])
+
+
+def crop_chromosome_from_origin(org_img, box, size):
+    x, y, w, h = [round(num.item()) for num in box.xywh[0]]
+    xmin, ymin = int(x - w / 2), int(y - h / 2)
+    xmax, ymax = int(x + w / 2), int(y + h / 2)
+    crop = org_img[ymin:ymax, xmin:xmax]
+    crop = resize_image(crop, size)
+    crop = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+    crop = np.expand_dims(crop, axis=-1)
+    return crop
 
 
 def load_all_crop_by_image(crop_path: str, image):

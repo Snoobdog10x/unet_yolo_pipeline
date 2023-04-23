@@ -9,6 +9,7 @@ TRAINED_MODEL_PATH = "trained_models"
 YOLO_MODEL_PATH = os.path.join(TRAINED_MODEL_PATH, "yolo.pt")
 OUTPUT_PATH = "output"
 DATA_PATH = "data"
+SEGMENT_IMAGE_SIZE = 256
 
 
 def get_chromosome_nums(image_file: str):
@@ -20,17 +21,24 @@ def get_chromosome_nums(image_file: str):
 
 
 def get_unet_model(device, bilinear, unet_type="NORMAL"):
-    unet_path = os.path.join(TRAINED_MODEL_PATH, "unet.pth" if unet_type == "NORMAL" else "unet_lite.pth")
     if unet_type == "NORMAL":
-        net = UNet(n_channels=3, n_classes=2, bilinear=bilinear)
+        net = UNet(n_channels=1, n_classes=2, bilinear=bilinear)
+        if SEGMENT_IMAGE_SIZE == 128:
+            unet_path = os.path.join(TRAINED_MODEL_PATH, "unet_128.pth")
+        else:
+            unet_path = os.path.join(TRAINED_MODEL_PATH, "unet_128.pth")
     else:
-        net = UNetLite(n_channels=3, n_classes=2, bilinear=bilinear)
+        if SEGMENT_IMAGE_SIZE == 128:
+            unet_path = os.path.join(TRAINED_MODEL_PATH, "unet_lite_128.pth")
+        else:
+            unet_path = os.path.join(TRAINED_MODEL_PATH, "unet_lite.pth")
+        net = UNetLite(n_channels=1, n_classes=2, bilinear=bilinear)
 
     net.to(device=device)
     state_dict = torch.load(unet_path, map_location=device)
     mask_values = state_dict.pop('mask_values', [0, 1])
     net.load_state_dict(state_dict)
-    logging(f"Unet {unet_type} loaded!")
+    logging(f"Unet {unet_type} at {unet_path} input {SEGMENT_IMAGE_SIZE} loaded!")
     return net
 
 
@@ -41,32 +49,32 @@ def get_yolo_model():
 
 def pipline(device, yolo, unet):
     count = 0
-    image_data = []
+    image_data = {}
     chromosome_counts = 0;
     for file in os.listdir(os.path.join(DATA_PATH, "images")):
         file_path = os.path.join(DATA_PATH, "images", file)
         chromosome_nums = get_chromosome_nums(file)
         chromosome_counts += chromosome_nums
-        logging(f"{file}: {chromosome_nums}")
-        image_data.append(file_path)
+        image_data[file_path] = chromosome_nums
         count += 1
-    results = yolo.predict(source=image_data, conf=0.5, line_thickness=1, save=True, show_conf=False,
-                           save_conf=True, save_crop=True)
-    latest_predict_path = get_latest_predict_path()
-    crop_path = os.path.join(latest_predict_path, "crops", "0-0")
+        if count == 3: break
+    results = yolo.predict(source=list(image_data.keys()), conf=0.5, line_thickness=1, save=False, show_conf=False,
+                           save_conf=True, save_crop=False)
     pred_chromosomes = 0
-    for index, result in enumerate(results):
-        pred_chromosome_count = len(result)
-        image_path = result.path
-        pred_chromosomes += pred_chromosome_count
-        crop_chromosome = load_all_crop_by_image(crop_path, image_path)
-        file_path = os.path.split(image_data[index])[-1]
-        logging(f"{file_path}: {pred_chromosome_count}")
-        for jindex, chromosome in enumerate(crop_chromosome):
-            output_path = os.path.join(OUTPUT_PATH, file_path)
-            os.makedirs(output_path, exist_ok=True)
-            pred_mask = predict_img(net=unet, full_img=chromosome, device=device)
-            plot_result(os.path.join(output_path, f"{jindex}.png"), chromosome, pred_mask)
+    for result_index, result in enumerate(results):
+        orig_img_file = os.path.split(result.path)[-1]
+        output_path = os.path.join(OUTPUT_PATH, orig_img_file[:-4])
+        os.makedirs(output_path, exist_ok=True)
+        boxes_num = len(result.boxes)
+        logging(f"{orig_img_file}: true box nums={image_data[result.path]} predict box nums={boxes_num}")
+        pred_chromosomes += boxes_num
+        orig_img = result.orig_img
+        for box_index, box in enumerate(result.boxes):
+            crop_chromosome = crop_chromosome_from_origin(orig_img, box, SEGMENT_IMAGE_SIZE)
+            pred_mask = predict_img(net=unet, full_img=crop_chromosome, device=device, size=SEGMENT_IMAGE_SIZE)
+            cleaned_chromosome = clean_chromosome(crop_chromosome, pred_mask)
+            plot_result(os.path.join(output_path, f"{box_index}.png"), crop_chromosome, cleaned_chromosome)
+
     logging(f"accuracy: {pred_chromosomes / chromosome_counts}")
 
 
@@ -77,8 +85,10 @@ def parse_args():
                         help='folder contain unet, unet_lite pth and yolo.pt')
     parser.add_argument('--save_result_path', '-srp', type=str, default="output",
                         help='save result and plot')
-    parser.add_argument('--model_type', '-mt', type=str, default="NORMAL",
+    parser.add_argument('--model_type', '-mt', type=str, default="LITE",
                         help='choose model type: NORMAL or LITE')
+    parser.add_argument('--unet_input_size', '-uis', type=int, default=128,
+                        help='choose unet input size')
     return parser.parse_args()
 
 
@@ -87,6 +97,7 @@ if __name__ == '__main__':
     DATA_PATH = args.data_path
     OUTPUT_PATH = args.save_result_path
     TRAINED_MODEL_PATH = args.model_path
+    SEGMENT_IMAGE_SIZE = args.unet_input_size
     YOLO_MODEL_PATH = os.path.join(TRAINED_MODEL_PATH, "yolo.pt")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     yolo = YOLO(YOLO_MODEL_PATH)
