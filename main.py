@@ -57,8 +57,7 @@ def pipline(device, yolo, unet):
         chromosome_counts += chromosome_nums
         image_data[file_path] = chromosome_nums
         count += 1
-        if count == 15:
-            break
+
     results = yolo.predict(source=list(image_data.keys()), stream=True, conf=0.5, line_thickness=1, save=False,
                            show_conf=False,
                            save_conf=True, save_crop=False)
