@@ -57,6 +57,8 @@ def pipline(device, yolo, unet):
         chromosome_counts += chromosome_nums
         image_data[file_path] = chromosome_nums
         count += 1
+        if count == 15:
+            break
     results = yolo.predict(source=list(image_data.keys()), conf=0.5, line_thickness=1, save=False, show_conf=False,
                            save_conf=True, save_crop=False)
     pred_chromosomes = 0
@@ -71,8 +73,9 @@ def pipline(device, yolo, unet):
         for box_index, box in enumerate(result.boxes):
             crop_chromosome = crop_chromosome_from_origin(orig_img, box, SEGMENT_IMAGE_SIZE)
             pred_mask = predict_img(net=unet, full_img=crop_chromosome, device=device, size=SEGMENT_IMAGE_SIZE)
-            cleaned_chromosome = clean_chromosome(crop_chromosome, pred_mask)
-            plot_result(os.path.join(output_path, f"{box_index}.png"), crop_chromosome, cleaned_chromosome)
+            # cleaned_chromosome = clean_chromosome(crop_chromosome, pred_mask)
+            rotate_object_to_90_degrees(pred_mask, crop_chromosome)
+            plot_result(os.path.join(output_path, f"{box_index}.png"), crop_chromosome, pred_mask)
 
     logging(f"accuracy: {pred_chromosomes / chromosome_counts}")
 
@@ -84,10 +87,10 @@ def parse_args():
                         help='folder contain unet, unet_lite pth and yolo.pt')
     parser.add_argument('--save_result_path', '-srp', type=str, default="output",
                         help='save result and plot')
-    parser.add_argument('--model_type', '-mt', type=str, default="LITE",
-                        help='choose model type: NORMAL or LITE')
-    parser.add_argument('--unet_input_size', '-uis', type=int, default=128,
-                        help='choose unet input size')
+    # parser.add_argument('--model_type', '-mt', type=str, default="LITE",
+    #                     help='choose model type: NORMAL or LITE')
+    # parser.add_argument('--unet_input_size', '-uis', type=int, default=128,
+    #                     help='choose unet input size')
     return parser.parse_args()
 
 
@@ -96,9 +99,9 @@ if __name__ == '__main__':
     DATA_PATH = args.data_path
     OUTPUT_PATH = args.save_result_path
     TRAINED_MODEL_PATH = args.model_path
-    SEGMENT_IMAGE_SIZE = args.unet_input_size
+    SEGMENT_IMAGE_SIZE = 128
     YOLO_MODEL_PATH = os.path.join(TRAINED_MODEL_PATH, "yolo.pt")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     yolo = YOLO(YOLO_MODEL_PATH)
-    unet = get_unet_model(device=device, bilinear=False, unet_type=args.model_type)
+    unet = get_unet_model(device=device, bilinear=False, unet_type="LITE")
     pipline(device=device, yolo=yolo, unet=unet)

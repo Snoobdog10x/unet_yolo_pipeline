@@ -59,11 +59,43 @@ def resize_image(image, size):
     return canvas
 
 
+def crop_minAreaRect(img, rect):
+    # rotate img
+    angle = rect[2]
+    rows, cols = img.shape[0], img.shape[1]
+    M = cv2.getRotationMatrix2D((cols / 2, rows / 2), angle, 1)
+    img_rot = cv2.warpAffine(img, M, (cols, rows))
+
+    # rotate bounding box
+    rect0 = (rect[0], rect[1], 0.0)
+    box = cv2.boxPoints(rect0)
+    pts = np.int0(cv2.transform(np.array([box]), M))[0]
+    pts[pts < 0] = 0
+
+    # crop
+    img_crop = img_rot[pts[1][1]:pts[0][1],
+               pts[1][0]:pts[2][0]]
+
+    return img_crop
+
+
+
+
+
+def rotate_object_to_90_degrees(mask, image):
+    open_mask = cv2.convertScaleAbs(mask)
+    contours, _ = cv2.findContours(open_mask.copy(), 1, 1)
+    rect = cv2.minAreaRect(contours[0]) # Fine minAreaRect of the merged contours
+    box = np.int0(cv2.boxPoints(rect))
+    (x, y), (w, h), a = rect
+    rect2 = cv2.drawContours(image.copy(), [box], 0, (0, 0, 255), 3)
+    
+    plt.imshow(rect2)
+    plt.show()
+
 def clean_chromosome(resized_im, mask):
     mask = np.expand_dims(mask, axis=-1)
-    mask = np.concatenate((mask, mask, mask),
-                          axis=-1)
-    crops = resized_im * mask  #
+    crops = resized_im * mask
     return crops
 
 
