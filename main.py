@@ -50,7 +50,7 @@ def get_yolo_model():
 def pipline(device, yolo, unet):
     count = 0
     image_data = {}
-    chromosome_counts = 0;
+    chromosome_counts = 0
     for file in os.listdir(os.path.join(DATA_PATH, "images")):
         file_path = os.path.join(DATA_PATH, "images", file)
         chromosome_nums = get_chromosome_nums(file)
