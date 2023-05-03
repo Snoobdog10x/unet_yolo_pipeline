@@ -57,17 +57,14 @@ def pipline(device, yolo, unet):
         chromosome_counts += chromosome_nums
         image_data[file_path] = chromosome_nums
         count += 1
-
-    results = yolo.predict(source=list(image_data.keys()), stream=True, conf=0.5, line_thickness=1, save=False,
-                           show_conf=False,
-                           save_conf=True, save_crop=False)
     pred_chromosomes = 0
-    for result_index, result in enumerate(results):
+    for result_index, image_path in enumerate(list(image_data.keys())):
+        result = yolo(image_path)[0]
         orig_img_file = os.path.split(result.path)[-1]
         output_path = os.path.join(OUTPUT_PATH, orig_img_file[:-4])
         os.makedirs(output_path, exist_ok=True)
         boxes_num = len(result.boxes)
-        logging(f"{orig_img_file}: true box nums={image_data[result.path]} predict box nums={boxes_num}")
+        logging(f"{orig_img_file}: true box nums={image_data[image_path]} predict box nums={boxes_num}")
         pred_chromosomes += boxes_num
         orig_img = result.orig_img
         for box_index, box in enumerate(result.boxes):
