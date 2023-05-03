@@ -59,7 +59,8 @@ def pipline(device, yolo, unet):
         count += 1
         if count == 15:
             break
-    results = yolo.predict(source=list(image_data.keys()), conf=0.5, line_thickness=1, save=False, show_conf=False,
+    results = yolo.predict(source=list(image_data.keys()), stream=True, conf=0.5, line_thickness=1, save=False,
+                           show_conf=False,
                            save_conf=True, save_crop=False)
     pred_chromosomes = 0
     for result_index, result in enumerate(results):
