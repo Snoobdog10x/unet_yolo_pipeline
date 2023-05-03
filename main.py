@@ -59,7 +59,7 @@ def pipline(device, yolo, unet):
         count += 1
     pred_chromosomes = 0
     for result_index, image_path in enumerate(list(image_data.keys())):
-        result = yolo(image_path)[0]
+        result = yolo(image_path, conf=0.5, line_thickness=1, show_conf=False)[0]
         orig_img_file = os.path.split(result.path)[-1]
         output_path = os.path.join(OUTPUT_PATH, orig_img_file[:-4])
         os.makedirs(output_path, exist_ok=True)
