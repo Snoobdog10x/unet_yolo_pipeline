@@ -57,6 +57,7 @@ def pipline(device, yolo, unet):
         chromosome_counts += chromosome_nums
         image_data[file_path] = chromosome_nums
         count += 1
+        break
     pred_chromosomes = 0
     for result_index, image_path in enumerate(list(image_data.keys())):
         result = yolo(image_path, conf=0.5, line_thickness=1, show_conf=False)[0]
@@ -70,9 +71,10 @@ def pipline(device, yolo, unet):
         for box_index, box in enumerate(result.boxes):
             crop_chromosome = crop_chromosome_from_origin(orig_img, box, SEGMENT_IMAGE_SIZE)
             pred_mask = predict_img(net=unet, full_img=crop_chromosome, device=device, size=SEGMENT_IMAGE_SIZE)
-            # cleaned_chromosome = clean_chromosome(crop_chromosome, pred_mask)
+            cleaned_chromosome = clean_chromosome(crop_chromosome, pred_mask)
             # rotate_object_to_90_degrees(pred_mask, crop_chromosome)
-            plot_result(os.path.join(output_path, f"{box_index}.png"), crop_chromosome, pred_mask)
+            # rotated_image = crop_and_rotate(crop_chromosome, pred_mask)
+            plot_result(os.path.join(output_path, f"{box_index}.png"), crop_chromosome, cleaned_chromosome)
 
     logging(f"accuracy: {pred_chromosomes / chromosome_counts}")
 

@@ -80,8 +80,40 @@ def crop_minAreaRect(img, rect):
 
 
 
+import cv2
+import numpy as np
+from scipy import ndimage
 
+def crop_and_rotate(image, mask):
+    convert_mask = mask.astype(np.uint8)
+    # Find contours in the mask
+    contours, _ = cv2.findContours(convert_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+    # Find the largest contour and crop the image
+    c = max(contours, key=cv2.contourArea)
+    x,y,w,h = cv2.boundingRect(c)
+    cropped = image[y:y+h,x:x+w]
+
+    # Find the minimum area rectangle that bounds the contour
+    rect = cv2.minAreaRect(c)
+    box = cv2.boxPoints(rect)
+    box = np.int0(box)
+
+    # Calculate the angle of rotation
+    angle = rect[2]
+    if angle < -45:
+        angle += 90
+
+    # Rotate the cropped image by the calculated angle
+    rotated = ndimage.rotate(cropped, angle)
+
+    # Create a new image with size 128x128 and put the rotated object in the center
+    new_image = np.zeros((128, 128, 1), dtype=np.uint8)
+    x_offset = (new_image.shape[1] - rotated.shape[1]) // 2
+    y_offset = (new_image.shape[0] - rotated.shape[0]) // 2
+    new_image[y_offset:y_offset+rotated.shape[0], x_offset:x_offset+rotated.shape[1]] = rotated
+
+    return new_image
 def rotate_object_to_90_degrees(mask, image):
     open_mask = cv2.convertScaleAbs(mask)
     contours, _ = cv2.findContours(open_mask.copy(), 1, 1)
