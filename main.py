@@ -57,7 +57,6 @@ def pipline(device, yolo, unet):
         chromosome_counts += chromosome_nums
         image_data[file_path] = chromosome_nums
         count += 1
-        break
     pred_chromosomes = 0
     for result_index, image_path in enumerate(list(image_data.keys())):
         result = yolo(image_path, conf=0.5, line_thickness=1, show_conf=False)[0]
