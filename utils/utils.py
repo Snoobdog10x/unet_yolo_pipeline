@@ -79,10 +79,10 @@ def crop_minAreaRect(img, rect):
     return img_crop
 
 
-
 import cv2
 import numpy as np
 from scipy import ndimage
+
 
 def crop_and_rotate(image, mask):
     convert_mask = mask.astype(np.uint8)
@@ -91,8 +91,8 @@ def crop_and_rotate(image, mask):
 
     # Find the largest contour and crop the image
     c = max(contours, key=cv2.contourArea)
-    x,y,w,h = cv2.boundingRect(c)
-    cropped = image[y:y+h,x:x+w]
+    x, y, w, h = cv2.boundingRect(c)
+    cropped = image[y:y + h, x:x + w]
 
     # Find the minimum area rectangle that bounds the contour
     rect = cv2.minAreaRect(c)
@@ -111,19 +111,22 @@ def crop_and_rotate(image, mask):
     new_image = np.zeros((128, 128, 1), dtype=np.uint8)
     x_offset = (new_image.shape[1] - rotated.shape[1]) // 2
     y_offset = (new_image.shape[0] - rotated.shape[0]) // 2
-    new_image[y_offset:y_offset+rotated.shape[0], x_offset:x_offset+rotated.shape[1]] = rotated
+    new_image[y_offset:y_offset + rotated.shape[0], x_offset:x_offset + rotated.shape[1]] = rotated
 
     return new_image
+
+
 def rotate_object_to_90_degrees(mask, image):
     open_mask = cv2.convertScaleAbs(mask)
     contours, _ = cv2.findContours(open_mask.copy(), 1, 1)
-    rect = cv2.minAreaRect(contours[0]) # Fine minAreaRect of the merged contours
+    rect = cv2.minAreaRect(contours[0])  # Fine minAreaRect of the merged contours
     box = np.int0(cv2.boxPoints(rect))
     (x, y), (w, h), a = rect
     rect2 = cv2.drawContours(image.copy(), [box], 0, (0, 0, 255), 3)
-    
+
     plt.imshow(rect2)
     plt.show()
+
 
 def clean_chromosome(resized_im, mask):
     mask = np.expand_dims(mask, axis=-1)
@@ -162,9 +165,9 @@ def plot_result(output_path, input, pred_mask=None):
     if pred_mask is not None:
         fig, ax = plt.subplots(1, 2)
         ax[0].set_title('Input image')
-        ax[0].imshow(input)
-        ax[1].set_title('mask')
-        ax[1].imshow(pred_mask)
+        ax[0].imshow(input, cmap='gray')
+        ax[1].set_title('Main chromosome')
+        ax[1].imshow(pred_mask, cmap='gray')
         plt.savefig(output_path)
         plt.close()
         return
