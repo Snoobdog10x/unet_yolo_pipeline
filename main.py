@@ -2,7 +2,7 @@ import argparse
 from utils.unet import UNetLite, UNet
 from utils.utils import *
 from ultralytics import YOLO
-
+import time
 import torch
 
 TRAINED_MODEL_PATH = "trained_models"
@@ -57,8 +57,12 @@ def pipline(device, yolo, unet):
         chromosome_counts += chromosome_nums
         image_data[file_path] = chromosome_nums
         count += 1
+        if count == 2:
+            break
     pred_chromosomes = 0
+    execution_time = {}
     for result_index, image_path in enumerate(list(image_data.keys())):
+        start_time = time.time()
         result = yolo(image_path, conf=0.5, line_thickness=1, show_conf=False)[0]
         orig_img_file = os.path.split(result.path)[-1]
         output_path = os.path.join(OUTPUT_PATH, orig_img_file[:-4])
@@ -74,7 +78,9 @@ def pipline(device, yolo, unet):
             # rotate_object_to_90_degrees(pred_mask, crop_chromosome)
             # rotated_image = crop_and_rotate(crop_chromosome, pred_mask)
             plot_result(os.path.join(output_path, f"{box_index}.png"), crop_chromosome, cleaned_chromosome)
-
+        end_time = time.time()
+        execution_time[image_path] = end_time - start_time
+    logging(f"Execution mean time: {sum(execution_time.values()) / len(execution_time.values())}")
     logging(f"accuracy: {pred_chromosomes / chromosome_counts}")
 
 
