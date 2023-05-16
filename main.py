@@ -81,6 +81,8 @@ def pipline(device, yolo, unet):
         end_time = time.time()
         execution_time[image_path] = end_time - start_time
     logging(f"Execution mean time: {sum(execution_time.values()) / len(execution_time.values())}")
+    logging(f"predict chromosomes: {pred_chromosomes}")
+    logging(f"truth chromosomes: {chromosome_counts}")
     logging(f"accuracy: {pred_chromosomes / chromosome_counts}")
 
 
